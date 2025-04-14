@@ -39,7 +39,7 @@
 </Settings>
 <Actions Context="Author">
     <Exec>
-    <Command>C:\Users\nmill\init-networking.ps1</Command>
+    <Command>C:\Users\nmill\setup-networking.ps1</Command>
     </Exec>
 </Actions>
 </Task>

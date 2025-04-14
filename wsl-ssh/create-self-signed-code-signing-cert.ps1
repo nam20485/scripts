@@ -30,4 +30,4 @@ $publisherStore.Close()
 
 Write-Host "Self-signed Authenticode certificate added to Trusted Publishers."
 
-Set-AuthenticodeSignature -FilePath ./init-networking.ps1 -Certificate $authenticode -TimestampServer "http://tsa.starfieldtech.com"
+Set-AuthenticodeSignature -FilePath ./setup-networking.ps1 -Certificate $authenticode -TimestampServer "http://tsa.starfieldtech.com"

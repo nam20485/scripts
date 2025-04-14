@@ -6,10 +6,10 @@
     Removes the port forwarding and firewall rules.
 
 .EXAMPLE
-    .\init-networking.ps1
+    .\setup-networking.ps1
     Sets up port forwarding and firewall rules.
 
-    .\init-networking.ps1 -Cleanup
+    .\setup-networking.ps1 -Cleanup
     Removes the port forwarding and firewall rules.
 #>
 
@@ -28,7 +28,7 @@ if ($Cleanup) {
     exit
 }
 
-Function Test-WslSsh-Running {
+Function Test-WslSsh-Is-Running {
     # Check if SSH is running, if not, start it
     $sshRunning = wsl ps -ef | Select-String -Pattern "sshd"
     if (-not $sshRunning) {
@@ -65,21 +65,25 @@ Function Start-Me-As-Admin {
 Start-Me-As-Admin
 
 # # Check if WSL is running, if not, start it
-Test-WslSsh-Running
+Test-WslSsh-Is-Running
     
 $WslAddr = (wsl hostname -I).Trim().split(" ")[0]
 $WslPort = 2222
 
 # Check if the IP Helper service is running, if not, start interface
 # (this is the service that implements portproxy command)
-$iphlpsvc = Get-Service -Name iphlpsvc -ErrorAction SilentlyContinue
-if ($null -eq $iphlpsvc) {
-    Write-Host "IP Helper service not found. Please ensure WSL is installed and running."
-    exit
-} elseif ($iphlpsvc.Status -ne 'Running') {
-    Write-Host "Starting IP Helper service..."
-    Start-Service -Name iphlpsvc
+Function Test-IpHelper-Service-Is-Running {
+    $iphlpsvc = Get-Service -Name iphlpsvc -ErrorAction SilentlyContinue
+    if ($null -eq $iphlpsvc) {
+        Write-Host "IP Helper service not found. Please ensure WSL is installed and running."
+        exit
+    } elseif ($iphlpsvc.Status -ne 'Running') {
+        Write-Host "Starting IP Helper service..."
+        Start-Service -Name iphlpsvc
+    }
 }
+
+Test-IpHelper-Service
 
 try {
     netsh interface portproxy delete v4tov4 listenaddress=$ListenAddr listenport=$ListenPort
