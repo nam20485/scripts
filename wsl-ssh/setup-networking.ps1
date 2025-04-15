@@ -50,7 +50,7 @@ Function Test-WslSsh-Is-Running {
     }
 }
 
-Function Start-Me-As-Admin {
+Function Start-As-Admin {
     # Check if the script is running with elevated privileges
     $isElevated = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
     
@@ -62,7 +62,7 @@ Function Start-Me-As-Admin {
 } 
 
 # # If elevation needed, start new process
-Start-Me-As-Admin
+Start-As-Admin
 
 # # Check if WSL is running, if not, start it
 Test-WslSsh-Is-Running
@@ -76,14 +76,18 @@ Function Test-IpHelper-Service-Is-Running {
     $iphlpsvc = Get-Service -Name iphlpsvc -ErrorAction SilentlyContinue
     if ($null -eq $iphlpsvc) {
         Write-Host "IP Helper service not found. Please ensure WSL is installed and running."
-        exit
+        return $false
     } elseif ($iphlpsvc.Status -ne 'Running') {
         Write-Host "Starting IP Helper service..."
         Start-Service -Name iphlpsvc
+        return $iphlpsvc.Status -ne 'Running'
     }
 }
 
-Test-IpHelper-Service
+if (! Test-IpHelper-Service-Is-Running) {
+    Write-Host "Failed to start IP Helper service. Please check your system configuration."
+    exit 1
+}
 
 try {
     netsh interface portproxy delete v4tov4 listenaddress=$ListenAddr listenport=$ListenPort
