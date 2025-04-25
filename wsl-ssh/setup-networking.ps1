@@ -84,7 +84,7 @@ Function Test-IpHelper-Service-Is-Running {
     }
 }
 
-if (! Test-IpHelper-Service-Is-Running) {
+if (-not (Test-IpHelper-Service-Is-Running)) {
     Write-Host "Failed to start IP Helper service. Please check your system configuration."
     exit 1
 }
