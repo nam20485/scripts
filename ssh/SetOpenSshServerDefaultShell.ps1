@@ -19,6 +19,20 @@ function Set-OpenSshServerDefaultShell {
             Write-Output "Operation cancelled by user."                        
         }
         else {
+            # export existing registry key to a file for backup
+            function Backup-RegistryKey {
+                param (                    
+                    [string, Mandatory]$RegistryPath                  
+                )               
+                if (Test-Path $regPath) {
+                    $backupFile = "./OpenSshServerDefaultShellBackup.reg"
+                    Export-RegistryKey -Path $RegistryPath -Destination $backupFile -Force
+                    Write-Output "Backup of existing registry key created at $Path"
+                } else {
+                    Write-Output "Registry path $regPath does not exist. No backup created."
+                }
+            }
+
             New-ItemProperty -Path "HKLM:\SOFTWARE\OpenSSH" -Name DefaultShell -Value $ShellPath -PropertyType String -Force
             return $true
         }
