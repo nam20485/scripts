@@ -17,6 +17,8 @@ param (
     [switch]$Cleanup
 )
 
+Import-Module $PSScriptRoot\..\..\Utils\Utils.psm1
+
 $ListenAddr = "0.0.0.0"
 $ListenPort = 2222
 $fwRuleName = 'Allow WSL SSH Forwarded Port'
@@ -50,41 +52,15 @@ Function Test-WslSsh-Is-Running {
     }
 }
 
-Function Start-As-Admin {
-    # Check if the script is running with elevated privileges
-    $isElevated = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-    
-    if (-not $isElevated) {
-        # Relaunch the script with elevated privileges
-        Start-Process powershell -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$($MyInvocation.MyCommand.Path)`"" -Verb RunAs
-        exit
-    }
-} 
-
 # # If elevation needed, start new process
-Start-As-Admin
+#Start-As-Admin
 
 # # Check if WSL is running, if not, start it
 Test-WslSsh-Is-Running
-    
-$WslAddr = (wsl hostname -I).Trim().split(" ")[0]
-$WslPort = 2222
 
 # Check if the IP Helper service is running, if not, start interface
 # (this is the service that implements portproxy command)
-Function Test-IpHelper-Service-Is-Running {
-    $iphlpsvc = Get-Service -Name iphlpsvc -ErrorAction SilentlyContinue
-    if ($null -eq $iphlpsvc) {
-        Write-Host "IP Helper service not found. Please ensure WSL is installed and running."
-        return $false
-    } elseif ($iphlpsvc.Status -ne 'Running') {
-        Write-Host "Starting IP Helper service..."
-        Start-Service -Name iphlpsvc
-        return $iphlpsvc.Status -ne 'Running'
-    }
-}
-
-if (-not (Test-IpHelper-Service-Is-Running)) {
+if (-not (Test-Service-Is-Running -ServiceName 'iphlpsvc' -Start $true)) {
     Write-Host "Failed to start IP Helper service. Please check your system configuration."
     exit 1
 }
@@ -93,7 +69,7 @@ try {
     netsh interface portproxy delete v4tov4 listenaddress=$ListenAddr listenport=$ListenPort
     Write-Host "Deleted any existing port forwarding rule."
 } catch {
-    Write-Host "Failed to delete port forwarding rule: $_"
+    Write-Host "Failed to delete port forwarding rule: $_"'iphlpsvc'
 }
 
 try {
@@ -121,9 +97,9 @@ $HostIpAddr = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.Interfac
 $HostIpAddr = $HostIpAddr | Select-Object -First 1
 
 Write-Host "WSL2 SSH & Port Forwarding is set up. You can connect to WSL2 SSH using either of the following commands:" -ForegroundColor Green
-Write-Host "ssh -p $ListenPort user@$HostName" -ForegroundColor White
-Write-Host "ssh -p $ListenPort user@$HostIpAddr" -ForegroundColor White
-Write-Host "ssh -p $WslPort user@$WslAddr (internal)" -ForegroundColor White 
+Write-Host "ssh -p $ListenPort <user>@$HostName" -ForegroundColor White
+Write-Host "ssh -p $ListenPort <user>@$HostIpAddr" -ForegroundColor White
+Write-Host "ssh -p $WslPort <user>@$WslAddr (internal)" -ForegroundColor White 
 Write-Host "You can use the same command to connect to WSL2 from a remote computer. Just replace $ListenAddr with the public IP address of the host machine."
 
 # To remove port forwarding rule: netsh interface portproxy delete v4tov4 listenaddress=$ListenAddr listenport=$ListenPort
