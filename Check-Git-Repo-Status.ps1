@@ -54,7 +54,7 @@ function Get-GitRepos-Status {
 }
 
 # Main execution
-$results = Get-GitRepos -Path $StartPath
+$results = Get-GitRepos-Status -Path $StartPath
 
 Write-Host "Summary of Git Repositories:" -ForegroundColor Green
 $results | ForEach-Object {
@@ -65,4 +65,4 @@ $results | ForEach-Object {
     Write-Host "-----------------------------"
 }
 
-Export-ModuleMember -Function 'Get-GitRepos'
+#Export-ModuleMember -Function 'Get-GitRepos'
