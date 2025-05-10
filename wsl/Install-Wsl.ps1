@@ -6,13 +6,24 @@ dism.exe /online /enable-feature /featurename:Microsoft-Windows-Subsystem-Linux 
 dism.exe /online /enable-feature /featurename:VirtualMachinePlatform /all /norestart
 
 $installDefaultUbuntu = Read-Host "Install default distro (Ubuntu 24.04)?"
-wsl --install
+if ($installDefaultUbuntu -eq $true) {
+    wsl --install
+}
 
+wsl --list --online
 $installMoreDistros = $false
-while ($installMoreDistros -eq )
-$installMoreDistros = Read-Host "Install another distro?"
+while ($installMoreDistros -eq $false) {
+    $installMoreDistros = Read-Host "Install another distro?"
+}
 
-if (%install)
-
+if ($install) {
+    wsl --install
+}
 
 wsl --update
+
+# restart computer
+$restart = Read-Host "Restart computer?"
+if ($restart -eq $true) {
+    Restart-Computer
+}
