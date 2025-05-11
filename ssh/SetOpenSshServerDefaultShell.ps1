@@ -41,6 +41,17 @@ function Set-OpenSshServerDefaultShell {
     return $false
 }
 
+# export the current default shell to a reg file for backup purposes
+$regFilePath = "C:\OpenSshServerDefaultShellBackup.reg"
+$regFileContent = @"
+Windows Registry Editor Version 5.00
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\OpenSSH]
+"@DefaultShell"="$currentShell"
+"@
+Set-Content -Path $regFilePath -Value $regFileContent -Force
+
+
 # Have user select a new default shell from a list of options or enter their own.
 $defaultShellOptions = @(
     "I want to enter my own shell path"
