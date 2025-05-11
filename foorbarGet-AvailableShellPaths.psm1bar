@@ -1,0 +1,6 @@
+# Module file for shell path functions
+
+# Dot-source the implementation file so the real function bodies are loaded
+. $PSScriptRoot\Get-AvailableShellPaths.ps1
+. $PSScriptRoot\Get-WindowsTerminalProfileShellPaths.ps1
+. $PSScriptRoot\Get-AllShellPaths.ps1
