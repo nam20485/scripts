@@ -1,3 +1,10 @@
+#! /bin/pwsh
+
+# This script waits for a specific host to respond to a ping request
+# and then runs a command passed as an argument.
+# Usage: Run-Command-When-Host-Responds.ps1 "<command>"
+# Example: Run-Command-When-Host-Responds.ps1 "Get-Process"
+
 #set command to first argument
 $command = $args[0]
 
