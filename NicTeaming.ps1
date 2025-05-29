@@ -1,4 +1,4 @@
-#New-NetSwitchTeam -Name "SwitchTeam01" -TeamMembers "Ethernet adapter vEthernet (External Realtek1)","Ethernet adapter vEthernet (External Realtek2)"
+New-NetSwitchTeam -Name "SwitchTeam01" -TeamMembers "Ethernet adapter vEthernet (External Realtek1)","Ethernet adapter vEthernet (External Realtek2)"
 
 # Format the output into two columns with alignment and add colors for better readability
 foreach ($adapter in Get-NetAdapter) {
@@ -46,9 +46,9 @@ foreach ($adapter in Get-NetAdapter) {
     foreach ($key in $properties.Keys) {
         $value = $properties[$key]
         if ($null -ne $value) {
-            Write-Host "{0,-30}: {1}" -f $key, $value -ForegroundColor Yellow
+            Write-Host ("{0,-30}: {1}" -f $key, $value) -ForegroundColor Yellow
         } else {
-            Write-Host "{0,-30}: [Not Available]" -f $key -ForegroundColor DarkGray
+            Write-Host ("{0,-30}: [Not Available]" -f $key) -ForegroundColor DarkGray
         }
     }
 
