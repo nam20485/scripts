@@ -1,5 +1,12 @@
 # https://superuser.com/a/1528657/901835
 
+# $registryQuery = cmd /c "reg query HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FolderDescriptions /f name /v name /s | findstr /c:'Name' | Sort"
+# $registryQuery | ForEach-Object {
+#     $line = $_
+#     Write-Output $line
+# }
+# Pause
+
 ###
 $FD = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FolderDescriptions'
 (Get-ItemProperty (Get-ChildItem $FD).PSPath).Name

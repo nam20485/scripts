@@ -1,1 +1,4 @@
 DefaultShellBackup.reg
+*.log
+remote-dev/vscode-server/code
+remote-dev/vscode-server/code-insiders.deb
