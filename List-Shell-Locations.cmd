@@ -1,2 +1,0 @@
-@For /f "tokens=1* delims=" %%A in ('reg query HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FolderDescriptions /f name /v name /s ^| findstr /c:"Name" ^| Sort') Do @Echo %%A
-pause

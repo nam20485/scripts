@@ -7,6 +7,17 @@
 # }
 # Pause
 
+### run in cmd prompt
+## Fixed: Execute the batch command using cmd /c
+cmd /c 'For /f "tokens=1* delims=" %A in (''reg query HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FolderDescriptions /f name /v name /s ^| findstr /c:"Name" ^| Sort'') Do @Echo %A'
+pause
+
+### run in PowerShell (alternative solution)
+# Pure PowerShell approach
+$regQuery = reg query "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FolderDescriptions" /f name /v name /s
+$regQuery | Where-Object { $_ -like "*Name*" } | Sort-Object | ForEach-Object { Write-Output $_ }
+pause
+
 ###
 $FD = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FolderDescriptions'
 (Get-ItemProperty (Get-ChildItem $FD).PSPath).Name

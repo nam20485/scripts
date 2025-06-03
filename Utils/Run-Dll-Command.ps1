@@ -33,4 +33,5 @@ Parameter(
     
     rundll32.exe $Dll,$Command $File $Verb
     # Example usage:    
+}
     
