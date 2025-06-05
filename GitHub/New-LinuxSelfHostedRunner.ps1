@@ -17,9 +17,9 @@ tar xzf ./actions-runner-linux-x64-2.324.0.tar.gz
 # Configure
 
 # Create the runner and start the configuration experience
-$ ./config.sh --url https://github.com/nam20485/AgentAsAService --token AAN6UFDMV6GNUOMTZY432XDIIBQ5Y
+./config.sh --url https://github.com/nam20485/AgentAsAService --token AAN6UFDMV6GNUOMTZY432XDIIBQ5Y
 # Last step, run it!
-$ ./run.sh
+./run.sh
 
 # Using your self-hosted runner
 
