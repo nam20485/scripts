@@ -85,7 +85,7 @@ function Get-WindowsTerminalProfileShellPaths {
                     }
                 }
             } catch {
-                Write-Host "Failed to parse $($settingsPath): $($_)"
+                Write-Warning "Failed to parse $($settingsPath): $($_.Exception.Message)"
             }
         }
     }
@@ -97,37 +97,61 @@ function Get-WindowsTerminalProfileShellPaths {
 
 # Combines the output of Get-AvailableShellPaths and Get-WindowsTerminalProfileShellPaths
 function Get-AllShellPaths {
-    <#
-    .SYNOPSIS
-        Returns a combined list of shell paths from system and Windows Terminal profiles.
-
-    .DESCRIPTION
-        Calls Get-AvailableShellPaths and Get-WindowsTerminalProfileShellPaths, merges their results, and removes duplicates.
-
-    .EXAMPLE
-        $allShells = Get-AllShellPaths
-        $allShells | ForEach-Object { Write-Host $_ }
-    #>
     $systemShells = Get-AvailableShellPaths
     $wtShells = Get-WindowsTerminalProfileShellPaths
-    $allShells = $systemShells + $wtShells
+    $allShells = $systemShells + $wtShells | Sort-Object -Unique
 
-    # Canonicalize paths, remove malformed entries, and deduplicate
-    $canonicalShells = @()
-    foreach ($shell in $allShells) {
-        if (-not $shell -or $shell.Trim() -eq "") { continue }
-        # Expand environment variables and remove quotes
-        $expanded = [Environment]::ExpandEnvironmentVariables($shell.Trim('"'))
-        # Try to resolve to a full path if possible
-        try {
-            $resolved = (Resolve-Path $expanded -ErrorAction Stop).Path
-        } catch {
-            $resolved = $expanded
-        }
-        # Remove malformed entries (e.g. incomplete paths)
-        if ($resolved -match '^[A-Za-z]:\\' -and -not ($canonicalShells -contains $resolved)) {
-            $canonicalShells += $resolved
+    return $allShells
+}
+
+function Backup-CurrenDefaultShell {
+    # Parameter help description
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$RegistryPath,
+        [Parameter(Mandatory = $true)]
+        [string]$RegistryKey
+    )
+
+    if (Test-Path "$RegistryPath") {
+        $existingValue = (Get-ItemProperty -Path $RegistryPath -Name $RegistryKey -ErrorAction SilentlyContinue).$registryKey
+        if ($existingValue) {
+            # backup in a new key next to the existing one
+            Set-ItemProperty -Path $RegistryPath -Name "DefaultShellBackup" -Value $existingValue -Force
+            Write-Host "Existing default shell backed up: $existingValue" -ForegroundColor Yellow
+
+            # Write backup to a .reg file
+            $regFilePath = "DefaultShellBackup.reg"
+            $regContent = @"
+Windows Registry Editor Version 5.00
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\OpenSSH]
+"DefaultShellBackup"="$existingValue"
+"@
+            $regContent | Out-File -FilePath $regFilePath -Encoding ASCII -Force
+            Write-Host "Backup written to $regFilePath" -ForegroundColor Yellow
         }
     }
-    return $canonicalShells
 }
+
+# Set the default shell for OpenSSH server
+function Set-DefaultShell {
+    param (
+        [string]$ShellPath
+    )
+
+    $registryPath = "HKLM:\SOFTWARE\OpenSSH"
+    $registryKey = "DefaultShell"
+
+    try {
+        # Backup existing value if it exists
+        Backup-CurrenDefaultShell -RegistryPath $registryPath -RegistryKey $registryKey
+
+        # Set the new default shell
+        Set-ItemProperty -Path $registryPath -Name $registryKey -Value $ShellPath -Force
+        Write-Host "Default shell set to: $ShellPath" -ForegroundColor Green
+    } catch {
+        Write-Host "Failed to set default shell: $_" -ForegroundColor Red
+    }
+}
+Export-ModuleMember -Function Get-AvailableShellPaths, Get-WindowsTerminalProfileShellPaths, Get-AllShellPaths
