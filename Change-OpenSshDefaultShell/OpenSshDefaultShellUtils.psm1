@@ -104,10 +104,6 @@ function Get-AllShellPaths {
     return $allShells
 }
 
-function Backup-CurrenDefaultShell {
-    Backup-RegistryKey -RegistryPath HKLM:\SOFTWARE\OpenSSH -RegistryKey DefaultShell
-}
-
 function Backup-RegistryKey {
     # Parameter help description
     param (
@@ -138,6 +134,10 @@ Windows Registry Editor Version 5.00
     }
 }
 
+function Backup-CurrentDefaultShell {
+    Backup-RegistryKey -RegistryPath HKLM:\SOFTWARE\OpenSSH -RegistryKey DefaultShell
+}
+
 # Set the default shell for OpenSSH server
 function Set-DefaultShell {
     param (
@@ -159,4 +159,5 @@ function Set-DefaultShell {
     }
 }
 
-Export-ModuleMember -Function Get-AvailableShellPaths, Get-WindowsTerminalProfileShellPaths, Get-AllShellPaths, Set-DefaultShell, Backup-RegistryKey, Backup-CurrenDefaultShell
+Export-ModuleMember -Function Get-AvailableShellPaths, Get-WindowsTerminalProfileShellPaths, Get-AllShellPaths, Set-DefaultShell, Backup-RegistryKey, Backup-CurrentDefaultShell
+

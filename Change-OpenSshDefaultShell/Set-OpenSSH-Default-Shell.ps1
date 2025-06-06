@@ -9,23 +9,29 @@ catch {
     exit 1
 }
 
+function Get-CurrentDefaultShell {
+    # Get the current default shell
+    $registryPath = "HKLM:\\SOFTWARE\\OpenSSH"
+    $registryKey = "DefaultShell"
+    $currentShell = $null
+    if (Test-Path "$registryPath") {
+        $currentShell = (Get-ItemProperty -Path $registryPath -Name $registryKey -ErrorAction SilentlyContinue).$registryKey
+    }
+
+    if ($shells.Count -eq 0) {
+        Write-Host "No available shells found on the system." -ForegroundColor Red
+        exit 1
+    }
+
+    return $currentShell
+}
+
 # Main execution
 
 # Use the Get-AllShellPaths function to retrieve all shell paths
 $shells = Get-AllShellPaths
 
-# Get the current default shell
-$registryPath = "HKLM:\\SOFTWARE\\OpenSSH"
-$registryKey = "DefaultShell"
-$currentShell = $null
-if (Test-Path "$registryPath") {
-    $currentShell = (Get-ItemProperty -Path $registryPath -Name $registryKey -ErrorAction SilentlyContinue).$registryKey
-}
-
-if ($shells.Count -eq 0) {
-    Write-Host "No available shells found on the system." -Foregrou0ndColor Red
-    exit 1
-}
+$currentShell = Get-CurrentDefaultShell
 
 Write-Host "Current OpenSSH default shell: $currentShell" -ForegroundColor Yellow
 Write-Host "Available shells:" -ForegroundColor Cyan
