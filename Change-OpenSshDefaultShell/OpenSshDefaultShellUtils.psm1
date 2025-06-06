@@ -105,6 +105,10 @@ function Get-AllShellPaths {
 }
 
 function Backup-CurrenDefaultShell {
+    Backup-RegistryKey -RegistryPath HKLM:\SOFTWARE\OpenSSH -RegistryKey DefaultShell
+}
+
+function Backup-RegistryKey {
     # Parameter help description
     param (
         [Parameter(Mandatory = $true)]
@@ -154,4 +158,5 @@ function Set-DefaultShell {
         Write-Host "Failed to set default shell: $_" -ForegroundColor Red
     }
 }
-Export-ModuleMember -Function Get-AvailableShellPaths, Get-WindowsTerminalProfileShellPaths, Get-AllShellPaths
+
+Export-ModuleMember -Function Get-AvailableShellPaths, Get-WindowsTerminalProfileShellPaths, Get-AllShellPaths, Set-DefaultShell, Backup-RegistryKey, Backup-CurrenDefaultShell
