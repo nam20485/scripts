@@ -26,7 +26,8 @@ param(
 )
 
 # Import the GpgGitHubUtils module
-Import-Module "$PSScriptRoot\Utils\GpgGitHubUtils.psm1"
+#Import-Module "$PSScriptRoot\Utils\GpgGitHubUtils.psm1"
+Import-Module ".\GpgGitHubUtils.psm1"
 
 #
 # Main script logic

@@ -44,7 +44,7 @@ describe 'Setup-GPG-GitHub.ps1' {
     }
 }
 
-Import-Module "$PSScriptRoot\Utils\GpgGitHubUtils.psm1"
+Import-Module ".\GpgGitHubUtils.psm1"
 
 describe 'Setup-GPG-GitHub.ps1' {
     # Example: Mock external commands
