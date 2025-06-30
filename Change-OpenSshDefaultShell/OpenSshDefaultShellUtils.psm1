@@ -149,7 +149,7 @@ function Set-DefaultShell {
 
     try {
         # Backup existing value if it exists
-        Backup-CurrenDefaultShell -RegistryPath $registryPath -RegistryKey $registryKey
+        Backup-CurrentDefaultShell
 
         # Set the new default shell
         Set-ItemProperty -Path $registryPath -Name $registryKey -Value $ShellPath -Force
@@ -159,5 +159,23 @@ function Set-DefaultShell {
     }
 }
 
-Export-ModuleMember -Function Get-AvailableShellPaths, Get-WindowsTerminalProfileShellPaths, Get-AllShellPaths, Set-DefaultShell, Backup-RegistryKey, Backup-CurrentDefaultShell
+function Get-CurrentDefaultShell {
+    # Get the current default shell
+    $registryPath = "HKLM:\\SOFTWARE\\OpenSSH"
+    $registryKey = "DefaultShell"
+    $currentShell = $null
+    if (Test-Path "$registryPath") {
+        $currentShell = (Get-ItemProperty -Path $registryPath -Name $registryKey -ErrorAction SilentlyContinue).$registryKey
+    }
+
+    if ($shells.Count -eq 0) {
+        Write-Host "No available shells found on the system." -ForegroundColor Red
+        exit 1
+    }
+
+    return $currentShell
+}
+
+Export-ModuleMember -Function Backup-CurrentDefaultShell
+Export-ModuleMember -Function Get-AvailableShellPaths, Get-WindowsTerminalProfileShellPaths, Get-AllShellPaths, Set-DefaultShell, Backup-RegistryKey, Backup-CurrentDefaultShell, Get-CurrentDefaultShell
 
