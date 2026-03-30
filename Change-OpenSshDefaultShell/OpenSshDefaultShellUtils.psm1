@@ -20,7 +20,8 @@ function Get-AvailableShellPaths {
 
     foreach ($shell in $shellNames) {
         # Search in PATH
-        $shellPath = (Get-Command $shell -ErrorAction SilentlyContinue)?.Source
+        $cmdResult = Get-Command $shell -ErrorAction SilentlyContinue
+        $shellPath = if ($cmdResult) { $cmdResult.Source } else { $null }
         if ($shellPath -and -not ($foundShells -contains $shellPath)) {
             $foundShells += $shellPath
         }
@@ -166,11 +167,6 @@ function Get-CurrentDefaultShell {
     $currentShell = $null
     if (Test-Path "$registryPath") {
         $currentShell = (Get-ItemProperty -Path $registryPath -Name $registryKey -ErrorAction SilentlyContinue).$registryKey
-    }
-
-    if ($shells.Count -eq 0) {
-        Write-Host "No available shells found on the system." -ForegroundColor Red
-        exit 1
     }
 
     return $currentShell
