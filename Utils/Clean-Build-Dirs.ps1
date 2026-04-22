@@ -17,61 +17,59 @@ Write-Host "Scanning '$SearchPath' for build artifacts (bin, obj, vcpkg_installe
 $totalTimer = [System.Diagnostics.Stopwatch]::StartNew()
 $searchTimer = [System.Diagnostics.Stopwatch]::StartNew()
 
-# 1. Custom Breadth-First Search to find targets (and actively avoid scanning inside them)
-$normalizedPaths = @()
-$searchQueue = New-Object System.Collections.Queue
+# 1. Custom Breadth-First Search using .NET classes for maximum performance
+$normalizedPaths = New-Object System.Collections.Generic.List[string]
+$searchQueue = New-Object System.Collections.Generic.Queue[string]
 
-try
-{
-    $initialDir = Get-Item -LiteralPath $SearchPath -ErrorAction Stop
+try {
+    # Resolve the absolute path
+    $initialDir = (Resolve-Path -LiteralPath $SearchPath -ErrorAction Stop).ProviderPath
     $searchQueue.Enqueue($initialDir)
-} catch
-{
+} catch {
     Write-Host "Invalid search path: $SearchPath" -ForegroundColor Red
     return
 }
 
-while ($searchQueue.Count -gt 0)
-{
-    $currentDir = $searchQueue.Dequeue()
+while ($searchQueue.Count -gt 0) {
+    $currentPath = $searchQueue.Dequeue()
 
-    # Get immediate child directories only
-    $subDirs = Get-ChildItem -LiteralPath $currentDir.FullName -Directory -Force -ErrorAction SilentlyContinue
+    try {
+        # Use raw .NET method - hundreds of times faster than Get-ChildItem in a loop
+        $subDirs = [System.IO.Directory]::EnumerateDirectories($currentPath)
+    } catch {
+        # Skip folders with permission denied or path too long errors
+        continue
+    }
 
-    foreach ($dir in $subDirs)
-    {
-        $dirName = $dir.Name.ToLower()
+    foreach ($dirPath in $subDirs) {
+        # Get just the folder name from the path string
+        $dirName = [System.IO.Path]::GetFileName($dirPath).ToLower()
         $isTarget = $false
 
         # Match standard dirs
-        if ($dirName -match '^(bin|obj|vcpkg_installed)$')
-        {
+        if ($dirName -match '^(bin|obj|vcpkg_installed)$') {
             $isTarget = $true
         }
         # Match 'out/build'
-        elseif ($dirName -eq 'build' -and $currentDir.Name.ToLower() -eq 'out')
-        {
+        elseif ($dirName -eq 'build' -and [System.IO.Path]::GetFileName($currentPath).ToLower() -eq 'out') {
             $isTarget = $true
         }
 
-        if ($isTarget)
-        {
-            # Add to list with normalized slashes
-            $normalizedPaths += $dir.FullName.Replace('\', '/')
+        if ($isTarget) {
+            # Add to list with normalized slashes (.Add is much faster than +=)
+            $normalizedPaths.Add($dirPath.Replace('\', '/'))
             # CRITICAL: We intentionally do NOT enqueue this directory.
             # This prevents finding nested targets like 'bin/obj' and vastly speeds up the script.
-        } else
-        {
+        } else {
             # Not a target, queue it up to search its contents
-            $searchQueue.Enqueue($dir)
+            $searchQueue.Enqueue($dirPath)
         }
     }
 }
 
 $searchTimer.Stop()
 
-if ($normalizedPaths.Count -eq 0)
-{
+if ($normalizedPaths.Count -eq 0) {
     Write-Host "No target build directories found. (Search took $('{0:N3}' -f $searchTimer.Elapsed.TotalSeconds) s)" -ForegroundColor Green
     $totalTimer.Stop()
     return
@@ -79,8 +77,7 @@ if ($normalizedPaths.Count -eq 0)
 
 # 2. List all the found paths
 Write-Host "`nFound $($normalizedPaths.Count) target directories in $('{0:N3}' -f $searchTimer.Elapsed.TotalSeconds) s:" -ForegroundColor Yellow
-foreach ($path in $normalizedPaths)
-{
+foreach ($path in $normalizedPaths) {
     Write-Host "  $path"
 }
 Write-Host ""
@@ -89,89 +86,72 @@ Write-Host ""
 $deleteAll = $false
 $deleteAllTimer = $null
 
-foreach ($dir in $normalizedPaths)
-{
+foreach ($dir in $normalizedPaths) {
     # If a parent directory was already deleted, the child won't exist anymore. Skip it.
-    if (-not (Test-Path -Path $dir))
-    {
+    if (-not (Test-Path -Path $dir)) {
         continue
     }
 
-    if ($deleteAll)
-    {
+    if ($deleteAll) {
         Write-Host "Deleting: $dir" -ForegroundColor DarkGray
-        try
-        {
+        try {
             Remove-Item -Path $dir -Recurse -Force -ErrorAction Stop
-        } catch
-        {
+        } catch {
             Write-Host "  Failed to delete: $_" -ForegroundColor Red
         }
         continue
     }
 
     $validResponse = $false
-    while (-not $validResponse)
-    {
+    while (-not $validResponse) {
         Write-Host "Delete this path? $dir (y)es/(n)o/(a)ll/(q)uit: " -NoNewline
 
         # Read a single key press without requiring Enter
         $response = [System.Console]::ReadKey($true).KeyChar.ToString().ToLower()
         Write-Host $response # Echo the pressed key
 
-        switch ($response)
-        {
-            'y'
-            {
+        switch ($response) {
+            'y' {
                 $delTimer = [System.Diagnostics.Stopwatch]::StartNew()
-                try
-                {
+                try {
                     Remove-Item -Path $dir -Recurse -Force -ErrorAction Stop
                     $delTimer.Stop()
                     Write-Host "  Deleted in $('{0:N3}' -f $delTimer.Elapsed.TotalSeconds) s." -ForegroundColor Green
-                } catch
-                {
+                } catch {
                     $delTimer.Stop()
                     Write-Host "  Failed to delete: $_" -ForegroundColor Red
                 }
                 $validResponse = $true
             }
-            'n'
-            {
+            'n' {
                 Write-Host "  Skipped." -ForegroundColor DarkGray
                 $validResponse = $true
             }
-            'a'
-            {
+            'a' {
                 $deleteAll = $true
                 $deleteAllTimer = [System.Diagnostics.Stopwatch]::StartNew()
-                try
-                {
+                try {
                     Remove-Item -Path $dir -Recurse -Force -ErrorAction Stop
                     Write-Host "  Deleted. (Will automatically delete remaining paths)" -ForegroundColor Green
-                } catch
-                {
+                } catch {
                     Write-Host "  Failed to delete: $_" -ForegroundColor Red
                 }
                 $validResponse = $true
             }
-            'q'
-            {
+            'q' {
                 Write-Host "Operation aborted by user." -ForegroundColor Yellow
                 $totalTimer.Stop()
                 Write-Host "Total execution time: $('{0:N3}' -f $totalTimer.Elapsed.TotalSeconds) s." -ForegroundColor DarkGray
                 return
             }
-            default
-            {
+            default {
                 Write-Host "  Invalid choice. Please press y, n, a, or q." -ForegroundColor Red
             }
         }
     }
 }
 
-if ($deleteAll -and $null -ne $deleteAllTimer)
-{
+if ($deleteAll -and $null -ne $deleteAllTimer) {
     $deleteAllTimer.Stop()
     Write-Host "`nBulk deletion completed in $('{0:N3}' -f $deleteAllTimer.Elapsed.TotalSeconds) s." -ForegroundColor Green
 }
