@@ -14,6 +14,9 @@ param(
 
 Write-Host "Scanning '$SearchPath' for build artifacts (bin, obj, vcpkg_installed, out/build)..." -ForegroundColor Cyan
 
+$totalTimer = [System.Diagnostics.Stopwatch]::StartNew()
+$searchTimer = [System.Diagnostics.Stopwatch]::StartNew()
+
 # 1. Custom Breadth-First Search to find targets (and actively avoid scanning inside them)
 $normalizedPaths = @()
 $searchQueue = New-Object System.Collections.Queue
@@ -65,14 +68,17 @@ while ($searchQueue.Count -gt 0)
     }
 }
 
+$searchTimer.Stop()
+
 if ($normalizedPaths.Count -eq 0)
 {
-    Write-Host "No target build directories found." -ForegroundColor Green
+    Write-Host "No target build directories found. (Search took $('{0:N3}' -f $searchTimer.Elapsed.TotalSeconds) s)" -ForegroundColor Green
+    $totalTimer.Stop()
     return
 }
 
 # 2. List all the found paths
-Write-Host "`nFound $($normalizedPaths.Count) target directories:" -ForegroundColor Yellow
+Write-Host "`nFound $($normalizedPaths.Count) target directories in $('{0:N3}' -f $searchTimer.Elapsed.TotalSeconds) s:" -ForegroundColor Yellow
 foreach ($path in $normalizedPaths)
 {
     Write-Host "  $path"
@@ -81,6 +87,7 @@ Write-Host ""
 
 # 4. Process deletion with interactive prompt
 $deleteAll = $false
+$deleteAllTimer = $null
 
 foreach ($dir in $normalizedPaths)
 {
@@ -93,25 +100,38 @@ foreach ($dir in $normalizedPaths)
     if ($deleteAll)
     {
         Write-Host "Deleting: $dir" -ForegroundColor DarkGray
-        Remove-Item -Path $dir -Recurse -Force -ErrorAction SilentlyContinue
+        try
+        {
+            Remove-Item -Path $dir -Recurse -Force -ErrorAction Stop
+        } catch
+        {
+            Write-Host "  Failed to delete: $_" -ForegroundColor Red
+        }
         continue
     }
 
     $validResponse = $false
     while (-not $validResponse)
     {
-        $response = Read-Host "Delete this path? $dir (y)es/(n)o/(a)ll/(q)uit"
+        Write-Host "Delete this path? $dir (y)es/(n)o/(a)ll/(q)uit: " -NoNewline
 
-        switch ($response.Trim().ToLower())
+        # Read a single key press without requiring Enter
+        $response = [System.Console]::ReadKey($true).KeyChar.ToString().ToLower()
+        Write-Host $response # Echo the pressed key
+
+        switch ($response)
         {
             'y'
             {
+                $delTimer = [System.Diagnostics.Stopwatch]::StartNew()
                 try
                 {
                     Remove-Item -Path $dir -Recurse -Force -ErrorAction Stop
-                    Write-Host "  Deleted." -ForegroundColor Green
+                    $delTimer.Stop()
+                    Write-Host "  Deleted in $('{0:N3}' -f $delTimer.Elapsed.TotalSeconds) s." -ForegroundColor Green
                 } catch
                 {
+                    $delTimer.Stop()
                     Write-Host "  Failed to delete: $_" -ForegroundColor Red
                 }
                 $validResponse = $true
@@ -124,6 +144,7 @@ foreach ($dir in $normalizedPaths)
             'a'
             {
                 $deleteAll = $true
+                $deleteAllTimer = [System.Diagnostics.Stopwatch]::StartNew()
                 try
                 {
                     Remove-Item -Path $dir -Recurse -Force -ErrorAction Stop
@@ -137,14 +158,23 @@ foreach ($dir in $normalizedPaths)
             'q'
             {
                 Write-Host "Operation aborted by user." -ForegroundColor Yellow
+                $totalTimer.Stop()
+                Write-Host "Total execution time: $('{0:N3}' -f $totalTimer.Elapsed.TotalSeconds) s." -ForegroundColor DarkGray
                 return
             }
             default
             {
-                Write-Host "  Invalid choice. Please enter y, n, a, or q." -ForegroundColor Red
+                Write-Host "  Invalid choice. Please press y, n, a, or q." -ForegroundColor Red
             }
         }
     }
 }
 
-Write-Host "`nCleanup finished successfully!" -ForegroundColor Cyan
+if ($deleteAll -and $null -ne $deleteAllTimer)
+{
+    $deleteAllTimer.Stop()
+    Write-Host "`nBulk deletion completed in $('{0:N3}' -f $deleteAllTimer.Elapsed.TotalSeconds) s." -ForegroundColor Green
+}
+
+$totalTimer.Stop()
+Write-Host "`nCleanup finished successfully! Total time: $('{0:N3}' -f $totalTimer.Elapsed.TotalSeconds) s." -ForegroundColor Cyan
