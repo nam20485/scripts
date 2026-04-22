@@ -42,6 +42,19 @@ while ($searchQueue.Count -gt 0) {
     }
 
     foreach ($dirPath in $subDirs) {
+
+        # --- NEW: Prevent Infinite Loops ---
+        # Check if the directory is a Symlink or Junction (ReparsePoint) and skip it
+        try {
+            $attributes = [System.IO.File]::GetAttributes($dirPath)
+            if ($attributes -bAnd [System.IO.FileAttributes]::ReparsePoint) {
+                continue
+            }
+        } catch {
+            continue
+        }
+        # -----------------------------------
+
         # Get just the folder name from the path string
         $dirName = [System.IO.Path]::GetFileName($dirPath).ToLower()
         $isTarget = $false
@@ -82,7 +95,7 @@ foreach ($path in $normalizedPaths) {
 }
 Write-Host ""
 
-# 4. Process deletion with interactive prompt
+# 3. Process deletion with interactive prompt
 $deleteAll = $false
 $deleteAllTimer = $null
 
@@ -145,7 +158,7 @@ foreach ($dir in $normalizedPaths) {
                 return
             }
             default {
-                Write-Host "  Invalid choice. Please press y, n, a, or q." -ForegroundColor Red
+                Write-Host "`n  Invalid choice. Please press y, n, a, or q." -ForegroundColor Red
             }
         }
     }
