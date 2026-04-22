@@ -2,7 +2,7 @@
 .SYNOPSIS
     Recursively finds and removes build artifact directories.
 .DESCRIPTION
-    Searches for 'bin', 'obj', 'vcpkg_installed', and 'out/build' directories.
+    Searches for 'bin', 'obj', 'vcpkg_installed', 'out/build', '.venv', and '.venv-linux' directories.
     Converts all paths to forward slashes and prompts the user for deletion
     with options for (y)es, (n)o, (a)ll, or (q)uit.
 #>
@@ -12,7 +12,7 @@ param(
     [string]$SearchPath
 )
 
-Write-Host "Scanning '$SearchPath' for build artifacts (bin, obj, vcpkg_installed, out/build)..." -ForegroundColor Cyan
+Write-Host "Scanning '$SearchPath' for build artifacts (bin, obj, vcpkg_installed, out/build, .venv, .venv-linux)..." -ForegroundColor Cyan
 
 $totalTimer = [System.Diagnostics.Stopwatch]::StartNew()
 $searchTimer = [System.Diagnostics.Stopwatch]::StartNew()
@@ -60,7 +60,7 @@ while ($searchQueue.Count -gt 0) {
         $isTarget = $false
 
         # Match standard dirs
-        if ($dirName -match '^(bin|obj|vcpkg_installed)$') {
+        if ($dirName -match '^(bin|obj|vcpkg_installed|\.venv|\.venv-linux)$') {
             $isTarget = $true
         }
         # Match 'out/build'
